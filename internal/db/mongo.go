@@ -17,6 +17,7 @@ func ConnectDB(mongoURL string) *mongo.Client {
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(mongoURL).SetServerAPIOptions(serverAPI)
 
+	// Initialize the MongoDB client
 	client, err := mongo.Connect(opts)
 	if err != nil {
 		log.Fatal(err)
