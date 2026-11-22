@@ -9,7 +9,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/shravastee-thakur/Go-Auth/internal/config"
+	"github.com/shravastee-thakur/Go-Auth/internal/controllers"
 	"github.com/shravastee-thakur/Go-Auth/internal/db"
+	authMiddleware "github.com/shravastee-thakur/Go-Auth/internal/middleware"
 )
 
 func main() {
@@ -19,6 +21,9 @@ func main() {
 	// 2. Connect to MongoDB Atlas
 	client := db.ConnectDB(cfg.MongoURL)
 	defer client.Disconnect(context.Background())
+
+	database := client.Database("auth_db")
+	authCtrl := controllers.NewAuthController(database, cfg)
 
 	// 3. Setup Chi router (like const app = express())
 	r := chi.NewRouter()
@@ -32,6 +37,19 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status}":"ok"`))
+	})
+
+	r.Route("/api/v1/auth", func(r chi.Router) {
+		// Public routes
+		r.Post("/register", authCtrl.Register)
+		r.Post("/login", authCtrl.Login)
+		r.Post("/refresh", authCtrl.Refresh)
+
+		// Protected routes
+		r.Group(func(r chi.Router) {
+			r.Use(authMiddleware.AuthMiddleware(cfg.AccessSecret))
+			r.Get("/profile", authCtrl.Profile)
+		})
 	})
 
 
